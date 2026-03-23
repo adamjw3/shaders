@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="style.css" />
+        <title>Slow Breaths</title>
+    </head>
+    <body>
+        <canvas id="breathCanvas" width="700" height="700"></canvas>
+        <section>
+            <div class="inhale">Inhale deeeply</div>
+            <div class="exhale">Exhale softly</div>
+        </section>
+    </body>
+
+    <script src="./assets/GlslCanvas.min.js"></script>
+    <script>
+        const canvas = document.getElementById('breathCanvas');
+        const sandbox = new GlslCanvas(canvas);
+
+        const shaderCode = `
+        precision mediump float;
+        uniform float u_time;
+        uniform sampler2D u_displacement;
+
+        varying vec2 v_texcoord;
+
+        vec4 rgba(float r, float g, float b, float a) {
+            return vec4(r / 255.0, g / 255.0, b / 255.0, a);
+        }
+
+        void main(void) {
+            vec2 uv = v_texcoord;
+
+            vec2 scrollUV = uv * 0.3 + u_time * 0.05;
+
+            vec2 p1 = fract(scrollUV);
+            vec2 p2 = fract(scrollUV + 0.5);
+
+            vec2 blend = abs(fract(scrollUV) * 2.0 - 1.0);
+            float w = smoothstep(0.3, 0.5, blend.x) * smoothstep(0.3, 0.5, blend.y);
+
+            vec4 dispColor = mix(texture2D(u_displacement, p1), texture2D(u_displacement, p2), w);
+
+            vec4 tl = rgba(252.0, 41.0, 212.0, 1.0);
+            vec4 tr = rgba(0.0, 255.0, 224.0, 1.0);
+            vec4 bl = rgba(250.0, 250.0, 0.0, 1.0);
+            vec4 br = rgba(231.0, 244.0, 255.0, 1.0);
+
+            float dispX = mix(-0.5, 0.5, dispColor.r);
+            float dispY = mix(-0.5, 0.5, dispColor.r);
+
+            vec4 color = mix(
+                mix(tl, tr, uv.x + dispX),
+                mix(bl, br, uv.x - dispY),
+                uv.y + dispY
+            );
+
+            gl_FragColor = color;
+        }
+    `;
+
+        // load() FIRST, then setUniform()
+        sandbox.load(shaderCode);
+        sandbox.setUniform('u_displacement', './assets/cloud.jpg');
+    </script>
+</html>
